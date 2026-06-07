@@ -5,6 +5,16 @@
 :root {
   --font-sans: "Public Sans", system-ui, sans-serif;
   --font-display: "Fraunces", Georgia, serif;
+
+  /* Primary color from themefisher.com */
+  --primary-700: #1a2b45;
+  --primary-800: #152c48;
+  --primary-900: #0f1d2f;
+
+  /* Neutral colors */
+  --neutral-500: #939fa7;
+  --neutral-700: #374151;
+  --neutral-900: #111827;
 }
 
 html, body {
