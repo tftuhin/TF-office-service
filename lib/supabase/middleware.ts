@@ -15,10 +15,8 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, options as any)
           );
         },
       },
@@ -26,10 +24,17 @@ export async function updateSession(request: NextRequest) {
   );
 
   // IMPORTANT: do not run code between createServerClient and getUser().
-  const { data: { user } } = await supabase.auth.getUser();
+  await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+
+  // Allow auth callback to complete without middleware interference
+  if (path.startsWith("/auth/")) {
+    return response;
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
 
   // Unauthenticated → bounce to login (except on public auth routes).
   if (!user && !isPublic) {
@@ -45,8 +50,5 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // NOTE: fine-grained role gating (staff/admin routes) happens in the
-  // (app) layout via a server-side profile fetch — see app/(app)/layout.tsx.
-  // We keep middleware to auth-only to avoid a DB round-trip on every request.
   return response;
 }
