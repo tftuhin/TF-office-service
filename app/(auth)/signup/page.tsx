@@ -34,8 +34,8 @@ export default function SignupPage() {
       <Card>
         <CardBody className="space-y-2 text-center">
           <h2 className="text-lg">Check your inbox</h2>
-          <p className="text-sm text-canteen-muted">
-            We sent a confirmation link to <span className="font-medium text-canteen-ink">{email}</span>.
+          <p className="text-sm text-neutral-500">
+            We sent a confirmation link to <span className="font-medium text-primary-700">{email}</span>.
           </p>
         </CardBody>
       </Card>
@@ -53,12 +53,12 @@ export default function SignupPage() {
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
         </Field>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button className="w-full" onClick={onSubmit} disabled={loading}>
+        <Button className="w-full bg-primary-700 hover:bg-primary-800" onClick={onSubmit} disabled={loading}>
           {loading ? "Creating…" : "Create account"}
         </Button>
-        <p className="text-center text-sm text-canteen-muted">
+        <p className="text-center text-sm text-neutral-500">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-canteen-accent hover:underline">Sign in</Link>
+          <Link href="/login" className="font-medium text-primary-700 hover:underline">Sign in</Link>
         </p>
       </CardBody>
     </Card>

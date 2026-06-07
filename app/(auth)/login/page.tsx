@@ -38,12 +38,12 @@ export default function LoginPage() {
             onKeyDown={(e) => e.key === "Enter" && onSubmit()} />
         </Field>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button className="w-full" onClick={onSubmit} disabled={loading}>
+        <Button className="w-full bg-primary-700 hover:bg-primary-800" onClick={onSubmit} disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
         </Button>
-        <p className="text-center text-sm text-canteen-muted">
+        <p className="text-center text-sm text-neutral-500">
           New here?{" "}
-          <Link href="/signup" className="font-medium text-canteen-accent hover:underline">Create an account</Link>
+          <Link href="/signup" className="font-medium text-primary-700 hover:underline">Create an account</Link>
         </p>
       </CardBody>
     </Card>
