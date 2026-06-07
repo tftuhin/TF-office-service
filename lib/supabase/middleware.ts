@@ -1,8 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
-
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -23,32 +21,8 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: do not run code between createServerClient and getUser().
+  // Refresh the session to ensure cookies are set for subsequent requests
   await supabase.auth.getUser();
-
-  const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
-
-  // Allow auth callback to complete without middleware interference
-  if (path.startsWith("/auth/")) {
-    return response;
-  }
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Unauthenticated → bounce to login (except on public auth routes).
-  if (!user && !isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  // Already signed in but sitting on an auth page → send to the app.
-  if (user && (path === "/login" || path === "/signup")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/menu";
-    return NextResponse.redirect(url);
-  }
 
   return response;
 }
