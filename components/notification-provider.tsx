@@ -79,28 +79,31 @@ export function NotificationProvider({
       }
 
       // Also use browser Notification API as fallback
-      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        try {
-          const options: NotificationOptions & { actions?: Array<{ action: string; title: string }> } = {
-            body,
-            tag: tone === "new" ? "new-order" : "pending-reminder",
-            requireInteraction: true,
-            badge: "🏢",
-            icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a2b45' width='192' height='192'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>📦</text></svg>",
-          };
-          if (tone === "new") {
-            options.actions = [
-              { action: 'open', title: 'Open' },
-              { action: 'dismiss', title: 'Dismiss' }
-            ];
+      if (typeof Notification !== "undefined") {
+        console.log("Notification permission:", Notification.permission);
+
+        if (Notification.permission === "granted") {
+          try {
+            const notifOptions: NotificationOptions = {
+              body,
+              tag: tone === "new" ? "new-order" : "pending-reminder",
+              requireInteraction: true,
+              badge: "🏢",
+              icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a2b45' width='192' height='192'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>📦</text></svg>",
+            };
+
+            console.log("Showing notification:", title);
+            new Notification(title, notifOptions);
+
+            // Play sound again
+            setTimeout(() => {
+              if (tone === "new") beep();
+            }, 500);
+          } catch (e) {
+            console.error("Notification error:", e);
           }
-          new Notification(title, options);
-          // Play sound again when notification appears
-          setTimeout(() => {
-            if (tone === "new") beep();
-          }, 500);
-        } catch (e) {
-          console.error("Notification API error:", e);
+        } else {
+          console.log("Notification permission not granted");
         }
       }
     },
