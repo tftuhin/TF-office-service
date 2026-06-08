@@ -4,6 +4,7 @@ export type OrderStatus = "pending" | "completed";
 export type Profile = {
   id: string;
   email: string;
+  name?: string | null;
   role: Role;
   created_at: string;
 };
@@ -36,6 +37,6 @@ export type OrderItem = {
 
 /** Shape returned by the dashboard query (order + joined lines + profile email). */
 export type OrderWithDetails = Order & {
-  profiles: { email: string } | null;
+  profiles: { email: string; name?: string | null } | null;
   order_items: (OrderItem & { items: Pick<Item, "name"> | null })[];
 };

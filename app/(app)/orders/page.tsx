@@ -41,7 +41,7 @@ export default async function MyOrdersPage() {
                         {new Date(o.placed_at).toLocaleString("en-BD", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" })}
                       </p>
                       {profile.role === "admin" && (
-                        <p className="text-xs text-canteen-accent font-medium">{o.profiles?.email || "Unknown"}</p>
+                        <p className="text-xs text-canteen-accent font-medium">{o.profiles?.name || o.profiles?.email || "Unknown"}</p>
                       )}
                     </div>
                     <ul className="mt-2 space-y-0.5 text-sm">

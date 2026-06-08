@@ -13,6 +13,7 @@ create extension if not exists "pgcrypto";  -- gen_random_uuid()
 create table if not exists public.profiles (
   id         uuid primary key references auth.users (id) on delete cascade,
   email      text not null,
+  name       text,
   role       text not null default 'user' check (role in ('user', 'staff', 'admin')),
   created_at timestamptz not null default now()
 );
@@ -107,8 +108,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, role)
-  values (new.id, new.email, 'user')
+  insert into public.profiles (id, email, name, role)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'name', ''),
+    'user'
+  )
   on conflict (id) do nothing;
   return new;
 end;

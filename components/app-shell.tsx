@@ -59,7 +59,8 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
       })}
       <div className="mt-auto border-t border-canteen-line pt-4">
         <div className="px-3 pb-2">
-          <p className="truncate text-sm text-canteen-ink">{profile.email}</p>
+          <p className="truncate text-sm font-medium text-canteen-ink">{profile.name || profile.email}</p>
+          <p className="truncate text-xs text-canteen-muted">{profile.name ? profile.email : ""}</p>
           <Badge tone={profile.role === "admin" ? "accent" : profile.role === "staff" ? "ok" : "muted"} className="mt-1 capitalize">
             {profile.role}
           </Badge>
