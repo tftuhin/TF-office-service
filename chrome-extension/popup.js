@@ -242,14 +242,26 @@ async function placeOrder() {
       },
       body: JSON.stringify({
         items,
-        notes: `Quick order from Chrome extension`
+        notes: 'Quick order from Chrome extension'
       })
     });
 
-    if (!response.ok) throw new Error('Failed to place order');
+    if (response.status === 401) {
+      showStatus('Session expired. Please login again.', 'error');
+      await chrome.storage.sync.remove(['authToken', 'userId', 'email']);
+      setTimeout(() => window.location.reload(), 1500);
+      return;
+    }
 
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to place order');
+    }
+
+    const data = await response.json();
     showStatus('✅ Order placed successfully!', 'success');
     selectedItems = [];
+
     setTimeout(() => {
       showStatus('');
       loadMenu();
@@ -257,7 +269,7 @@ async function placeOrder() {
     }, 2000);
   } catch (error) {
     console.error('Order error:', error);
-    showStatus('Failed to place order', 'error');
+    showStatus('Failed to place order: ' + (error as Error).message, 'error');
   }
 }
 
