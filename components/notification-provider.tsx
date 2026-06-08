@@ -69,7 +69,16 @@ export function NotificationProvider({
       // New orders get loud continuous alert
       beep();
 
-      // Browser notification - persist on screen and in notification bar
+      // Try to show notification via Service Worker (works better for system notification bar)
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "SHOW_NOTIFICATION",
+          title,
+          body,
+        });
+      }
+
+      // Also use browser Notification API as fallback
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         try {
           const options: NotificationOptions & { actions?: Array<{ action: string; title: string }> } = {
@@ -85,7 +94,7 @@ export function NotificationProvider({
               { action: 'dismiss', title: 'Dismiss' }
             ];
           }
-          const notif = new Notification(title, options);
+          new Notification(title, options);
           // Play sound again when notification appears
           setTimeout(() => {
             if (tone === "new") beep();

@@ -1,64 +1,59 @@
-// Service Worker for persistent notifications and background sync
+// Service Worker for persistent notifications, background sync, and offline support
 
-// Handle push notifications
+// Install event - cache assets
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
+  self.skipWaiting(); // Activate immediately
+});
+
+// Activate event - claim all clients
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  event.waitUntil(clients.claim());
+});
+
+// Handle push notifications from server
 self.addEventListener('push', (event) => {
+  console.log('Push notification received');
+
   if (!event.data) {
-    console.log('Push notification received with no data');
+    console.log('No data in push notification');
     return;
   }
 
   try {
     const data = event.data.json();
-    const options = {
-      body: data.body || 'New notification',
-      tag: data.tag || 'notification',
-      requireInteraction: true,
-      badge: '🏢',
-      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect fill="%231a2b45" width="192" height="192"/><text x="96" y="130" font-size="100" text-anchor="middle" fill="white">📦</text></svg>',
-      vibrate: [200, 100, 200, 100, 200],
-      actions: [
-        {
-          action: 'open',
-          title: 'Open App',
-          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><text x="96" y="130" font-size="100" text-anchor="middle">👁️</text></svg>',
-        },
-        {
-          action: 'close',
-          title: 'Close',
-        },
-      ],
-    };
-
-    event.waitUntil(
-      self.registration.showNotification(data.title || 'Themefisher Office Service', options)
-    );
+    showNotification(data.title || 'Themefisher', data.body || 'New notification');
   } catch (e) {
-    console.error('Push notification error:', e);
-    // Fallback notification
-    event.waitUntil(
-      self.registration.showNotification('New Order', {
-        body: 'A new order has been placed',
-        requireInteraction: true,
-        badge: '🏢',
-        vibrate: [200, 100, 200, 100, 200],
-      })
-    );
+    console.error('Push notification parse error:', e);
+    // Fallback if not JSON
+    showNotification('Themefisher Office Service', event.data.text());
   }
 });
+
+// Simpler notification function
+function showNotification(title, body) {
+  const options = {
+    body: body,
+    tag: 'order-notification',
+    requireInteraction: true,
+    badge: '🏢',
+    icon: '/manifest.json', // Use manifest icon
+    vibrate: [200, 100, 200, 100, 200],
+  };
+
+  return self.registration.showNotification(title, options);
+}
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'close') {
-    return;
-  }
-
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      // Look for existing window
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Focus existing window
       for (const client of clientList) {
-        if (client.url === '/' || client.url.includes('/canteen')) {
+        if (client.url.includes('/canteen') || client.url.endsWith('/')) {
           return client.focus();
         }
       }
@@ -70,14 +65,25 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Handle notification close
-self.addEventListener('notificationclose', (event) => {
-  console.log('Notification closed:', event.notification.tag);
+// Handle messages from clients
+self.addEventListener('message', (event) => {
+  console.log('Service Worker received message:', event.data);
+
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    showNotification(event.data.title, event.data.body);
+  } else if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
-// Keep service worker alive and listen for messages
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+// Listen for messages to trigger notifications
+self.addEventListener('sync', (event) => {
+  console.log('Background sync event:', event.tag);
+  if (event.tag === 'sync-orders') {
+    event.waitUntil(
+      fetch('/api/orders').then(() => {
+        showNotification('Orders Updated', 'New orders have arrived');
+      })
+    );
   }
 });

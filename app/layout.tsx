@@ -7,8 +7,15 @@ const display = Fraunces({ subsets: ["latin"], variable: "--font-display", weigh
 const sans = Public_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Cafeteria — Office Canteen",
-  description: "Order, prepare, and track office cafeteria meals.",
+  title: "Themefisher — Office Service",
+  description: "Office service ordering and management system",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Themefisher",
+  },
+  viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
