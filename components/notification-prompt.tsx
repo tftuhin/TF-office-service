@@ -29,8 +29,8 @@ export function NotificationPrompt() {
           console.log("Capacitor notification permission status:", status);
           setNotificationSupported(true);
 
-          // Prompt is shown if permission is "prompt"
-          if (status.display === "prompt" || status.display === "default") {
+          // Prompt is shown if permission is not yet granted or denied
+          if (status.display !== "granted" && status.display !== "denied") {
             console.log("Showing Capacitor notification prompt");
             setPermission("prompt");
             setShow(true);

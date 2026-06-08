@@ -14,8 +14,6 @@ const config: CapacitorConfig = {
       smallIcon: 'ic_launcher',
       iconColor: '#1a2b45',
       sound: 'beep',
-      importance: 5, // Max importance
-      vibrate: true,
     }
   }
 };
