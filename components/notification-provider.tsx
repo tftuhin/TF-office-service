@@ -69,19 +69,8 @@ export function NotificationProvider({
       // New orders get loud continuous alert
       beep();
 
-      // Try to show notification via Service Worker (works better for system notification bar)
-      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: "SHOW_NOTIFICATION",
-          title,
-          body,
-        });
-      }
-
-      // Also use browser Notification API as fallback
+      // Show browser notification (works when app is open)
       if (typeof Notification !== "undefined") {
-        console.log("Notification permission:", Notification.permission);
-
         if (Notification.permission === "granted") {
           try {
             const notifOptions: NotificationOptions = {
@@ -92,19 +81,29 @@ export function NotificationProvider({
               icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a2b45' width='192' height='192'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>📦</text></svg>",
             };
 
-            console.log("Showing notification:", title);
             new Notification(title, notifOptions);
 
             // Play sound again
-            setTimeout(() => {
-              if (tone === "new") beep();
-            }, 500);
+            if (tone === "new") {
+              setTimeout(() => beep(), 500);
+              setTimeout(() => beep(), 1000);
+            }
           } catch (e) {
             console.error("Notification error:", e);
           }
-        } else {
-          console.log("Notification permission not granted");
+        } else if (Notification.permission === "denied") {
+          console.log("Notifications blocked by user");
         }
+      }
+
+      // Request permission if not yet decided
+      if (
+        typeof Notification !== "undefined" &&
+        Notification.permission === "default"
+      ) {
+        Notification.requestPermission().catch(() => {
+          console.log("User denied notification permission");
+        });
       }
     },
     [pushToast, beep]
