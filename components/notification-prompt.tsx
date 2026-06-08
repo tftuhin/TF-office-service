@@ -4,63 +4,114 @@ import { useEffect, useState } from "react";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 export function NotificationPrompt() {
   const [show, setShow] = useState(false);
+  const [isCapacitor, setIsCapacitor] = useState(false);
   const [notificationSupported, setNotificationSupported] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission | null>(null);
+  const [permission, setPermission] = useState<NotificationPermission | "granted" | "denied" | "prompt" | null>(null);
 
   useEffect(() => {
-    // Check if notifications are supported
-    const isSupported = typeof Notification !== "undefined";
-    setNotificationSupported(isSupported);
+    const initNotifications = async () => {
+      // Check if running in Capacitor (native mobile app)
+      const inCapacitor = typeof (window as any).capacitor !== "undefined";
+      setIsCapacitor(inCapacitor);
+      console.log("Is Capacitor:", inCapacitor);
 
-    if (isSupported) {
-      const currentPermission = Notification.permission;
-      setPermission(currentPermission);
-      console.log("Notification permission status:", currentPermission);
+      if (inCapacitor) {
+        try {
+          // Check Capacitor permission status
+          const status = await LocalNotifications.checkPermissions();
+          console.log("Capacitor notification permission status:", status);
+          setNotificationSupported(true);
 
-      // Show prompt if permission not yet requested
-      if (currentPermission === "default") {
-        console.log("Showing notification prompt");
-        const timer = setTimeout(() => {
-          setShow(true);
-        }, 1000);
-        return () => clearTimeout(timer);
-      } else if (currentPermission === "denied") {
-        console.log("Notifications were denied by user");
-      } else if (currentPermission === "granted") {
-        console.log("Notifications already granted");
+          // Prompt is shown if permission is "prompt"
+          if (status.display === "prompt" || status.display === "default") {
+            console.log("Showing Capacitor notification prompt");
+            setPermission("prompt");
+            setShow(true);
+          } else if (status.display === "granted") {
+            console.log("Capacitor notifications already granted");
+            setPermission("granted");
+          } else if (status.display === "denied") {
+            console.log("Capacitor notifications were denied");
+            setPermission("denied");
+          }
+        } catch (error) {
+          console.error("Error checking Capacitor permissions:", error);
+        }
+      } else {
+        // Web Notification API
+        const isSupported = typeof Notification !== "undefined";
+        setNotificationSupported(isSupported);
+
+        if (isSupported) {
+          const currentPermission = Notification.permission;
+          setPermission(currentPermission as any);
+          console.log("Web notification permission status:", currentPermission);
+
+          if (currentPermission === "default") {
+            console.log("Showing web notification prompt");
+            setShow(true);
+          }
+        }
       }
-    } else {
-      console.log("Notifications not supported in this browser");
-    }
+    };
+
+    initNotifications();
   }, []);
 
   const handleEnable = async () => {
-    if (typeof Notification === "undefined") {
-      alert("Notifications not supported in this browser");
-      return;
-    }
-
     try {
-      console.log("Requesting notification permission...");
-      const permission = await Notification.requestPermission();
-      console.log("Permission result:", permission);
+      if (isCapacitor) {
+        console.log("Requesting Capacitor notification permission...");
+        const status = await LocalNotifications.requestPermissions();
+        console.log("Capacitor permission result:", status);
 
-      setPermission(permission);
+        if (status.display === "granted") {
+          setPermission("granted");
+          console.log("Capacitor notifications granted, sending test notification");
 
-      if (permission === "granted") {
-        console.log("Notifications granted, sending test notification");
-        // Test notification
-        new Notification("Themefisher ✓", {
-          body: "Notifications enabled! You'll receive alerts for new orders",
-          badge: "🏢",
-          icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a2b45' width='192' height='192'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>✓</text></svg>",
-          requireInteraction: false,
-        });
-      } else if (permission === "denied") {
-        alert("Notifications blocked. Please enable notifications in browser settings.");
+          // Test notification
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                title: "Themefisher ✓",
+                body: "Notifications enabled! You'll receive alerts for new orders",
+                id: Math.floor(Date.now() / 1000),
+                schedule: { at: new Date(Date.now() + 100) },
+              },
+            ],
+          });
+        } else {
+          setPermission("denied");
+          alert("Notifications denied. Please enable in your device settings.");
+        }
+      } else {
+        // Web Notification API
+        if (typeof Notification === "undefined") {
+          alert("Notifications not supported in this browser");
+          return;
+        }
+
+        console.log("Requesting web notification permission...");
+        const perm = await Notification.requestPermission();
+        console.log("Web permission result:", perm);
+
+        setPermission(perm as any);
+
+        if (perm === "granted") {
+          console.log("Notifications granted, sending test notification");
+          new Notification("Themefisher ✓", {
+            body: "Notifications enabled! You'll receive alerts for new orders",
+            badge: "🏢",
+            icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a2b45' width='192' height='192'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>✓</text></svg>",
+            requireInteraction: false,
+          });
+        } else if (perm === "denied") {
+          alert("Notifications blocked. Please enable notifications in browser settings.");
+        }
       }
 
       setShow(false);
@@ -70,8 +121,7 @@ export function NotificationPrompt() {
     }
   };
 
-  // Always show if permission is default (not yet requested)
-  const shouldShow = notificationSupported && permission === "default";
+  const shouldShow = notificationSupported && (permission === "default" || permission === "prompt");
 
   if (!shouldShow) return null;
 
