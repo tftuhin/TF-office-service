@@ -72,18 +72,20 @@ export function NotificationProvider({
       // Browser notification - persist on screen and in notification bar
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         try {
-          const notif = new Notification(title, {
+          const options: NotificationOptions & { actions?: Array<{ action: string; title: string }> } = {
             body,
             tag: tone === "new" ? "new-order" : "pending-reminder",
-            requireInteraction: true, // Keep notification visible until user interacts
+            requireInteraction: true,
             badge: "🏢",
             icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a2b45' width='192' height='192'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>📦</text></svg>",
-            vibrate: [200, 100, 200, 100, 200], // Vibrate pattern for phones
-            actions: tone === "new" ? [
+          };
+          if (tone === "new") {
+            options.actions = [
               { action: 'open', title: 'Open' },
               { action: 'dismiss', title: 'Dismiss' }
-            ] : undefined,
-          });
+            ];
+          }
+          const notif = new Notification(title, options);
           // Play sound again when notification appears
           setTimeout(() => {
             if (tone === "new") beep();
