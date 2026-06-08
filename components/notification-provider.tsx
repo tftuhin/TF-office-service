@@ -27,37 +27,63 @@ export function NotificationProvider({
     setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== id)), 8000);
   }, []);
 
-  // --- Loud alert tone via Web Audio (persistent, repeating) ------------------
+  // --- EXTREMELY LOUD alert tone via Web Audio ------------------
   const beep = useCallback(() => {
     try {
       const Ctx = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new Ctx();
-      const osc = ctx.createOscillator();
+
+      // Create multiple oscillators for richer, louder sound
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
+      const masterGain = ctx.createGain();
+
+      // Connect oscillators to gain
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      // Set maximum volume (1.0 is max for Web Audio)
+      masterGain.gain.setValueAtTime(1.0, ctx.currentTime);
 
       const now = ctx.currentTime;
-      const duration = 3; // 3 second alert total
+      const alertDuration = 5; // 5 second alert
 
-      // Repeating loud beep pattern (plays 3 times)
-      for (let i = 0; i < 3; i++) {
-        const offset = i * 1;
-        // High beep (loud)
-        osc.frequency.setValueAtTime(1200, now + offset);
-        gain.gain.setValueAtTime(0, now + offset);
-        gain.gain.linearRampToValueAtTime(0.8, now + offset + 0.05); // Ramp up to max volume
-        gain.gain.linearRampToValueAtTime(0.8, now + offset + 0.25); // Hold at loud volume
-        gain.gain.linearRampToValueAtTime(0, now + offset + 0.35); // Fade out
+      // Two different frequencies for richer alarm sound
+      osc1.type = "square";
+      osc2.type = "triangle";
+
+      // Play 4 loud beeps with high and low tones
+      for (let i = 0; i < 4; i++) {
+        const offset = i * 1.2;
+        if (offset >= alertDuration) break;
+
+        // Alternate between high and low tones
+        const highFreq = i % 2 === 0 ? 1000 : 800;
+        const lowFreq = i % 2 === 0 ? 600 : 500;
+
+        // High frequency beep
+        osc1.frequency.setValueAtTime(highFreq, now + offset);
+        osc2.frequency.setValueAtTime(lowFreq, now + offset);
+        gain.gain.setValueAtTime(0.9, now + offset);
+        gain.gain.linearRampToValueAtTime(0.9, now + offset + 0.4); // Hold at max
+        gain.gain.linearRampToValueAtTime(0, now + offset + 0.5); // Quick fade
+
+        // Add subtle fade for next beep
+        gain.gain.setValueAtTime(0.05, now + offset + 0.5);
       }
 
-      osc.start();
-      osc.stop(now + duration);
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + alertDuration);
+      osc2.stop(now + alertDuration);
 
-      // Vibration pattern (if device supports it)
+      // EXTREMELY strong vibration pattern (if device supports it)
       if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200, 100, 200]); // Vibrate 5 times
+        // Long vibration bursts: 500ms on, 200ms off (repeat 5 times)
+        navigator.vibrate([500, 200, 500, 200, 500, 200, 500, 200, 500]);
       }
     } catch {
       /* autoplay may be blocked until the first user interaction */
@@ -86,17 +112,27 @@ export function NotificationProvider({
             const notifOptions: NotificationOptions = {
               body,
               tag: tone === "new" ? "new-order" : "pending-reminder",
-              requireInteraction: true,
+              requireInteraction: true, // Forces user to dismiss
               badge: "🏢",
               icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a2b45' width='192' height='192'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>📦</text></svg>",
+              silent: false, // Ensure sound plays
             };
 
-            new Notification(title, notifOptions);
+            const notification = new Notification(title, notifOptions);
 
-            // Play sound again
+            // Click handler
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
+
+            // Play extremely loud alert for new orders
             if (tone === "new") {
-              setTimeout(() => beep(), 500);
-              setTimeout(() => beep(), 1000);
+              // Immediate first alert
+              beep();
+              // Follow-up alerts after short delays for extreme urgency
+              setTimeout(() => beep(), 800);
+              setTimeout(() => beep(), 1600);
             }
           } catch (e) {
             console.error("Notification error:", e);
