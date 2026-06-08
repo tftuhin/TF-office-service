@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Themefisher Office Service</string>
+    <string name="title_activity_main">Themefisher Office Service</string>
+    <string name="package_name">com.themefisher.office</string>
+    <string name="custom_url_scheme">com.themefisher.office</string>
+</resources>
