@@ -1,76 +1,70 @@
-// Content script that runs on the web app
-// Helps share authentication token with the extension
+// Content script - runs on the Themefisher app
+// Helps the extension access authentication tokens
+
+console.log('[Themefisher] Content script loaded');
 
 // Listen for messages from the extension
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('[Themefisher] Received message:', request.action);
+
   if (request.action === 'getToken') {
     // Get auth data from localStorage
-    const token = localStorage.getItem('auth_token');
-    const userId = localStorage.getItem('user_id');
-    const email = localStorage.getItem('user_email');
+    try {
+      const token = localStorage.getItem('auth_token');
+      const userId = localStorage.getItem('user_id');
+      const email = localStorage.getItem('user_email');
 
-    // If we have auth data, send it
-    if (token && userId) {
-      sendResponse({
-        token: token,
-        userId: userId,
-        email: email
-      });
-    } else {
-      // No auth found
-      sendResponse({ error: 'Not authenticated' });
+      console.log('[Themefisher] Token check:', { token: !!token, userId: !!userId });
+
+      if (token && userId) {
+        sendResponse({
+          token: token,
+          userId: userId,
+          email: email || ''
+        });
+      } else {
+        sendResponse({ error: 'Not authenticated' });
+      }
+    } catch (error) {
+      console.error('[Themefisher] Error getting token:', error);
+      sendResponse({ error: error.message });
     }
-  }
-
-  if (request.action === 'setToken') {
-    // Save token from app to localStorage
-    localStorage.setItem('auth_token', request.token);
-    localStorage.setItem('user_id', request.userId);
-    localStorage.setItem('user_email', request.email);
-
-    // Also notify the extension
-    chrome.runtime.sendMessage({
-      action: 'tokenUpdated',
-      token: request.token,
-      userId: request.userId,
-      email: request.email
-    });
-
-    sendResponse({ success: true });
+    return true; // Keep channel open for async response
   }
 });
 
-// On page load, try to auto-send token if available
-window.addEventListener('load', () => {
+// Auto-send token on page load if it exists
+function sendTokenIfAvailable() {
   const token = localStorage.getItem('auth_token');
   const userId = localStorage.getItem('user_id');
   const email = localStorage.getItem('user_email');
 
   if (token && userId) {
+    console.log('[Themefisher] Sending token to extension...');
     try {
       chrome.runtime.sendMessage({
         action: 'tokenUpdated',
         token: token,
         userId: userId,
-        email: email
+        email: email || ''
       });
     } catch (error) {
-      // Extension might not be listening
+      console.log('[Themefisher] Extension not available (expected if not installed)');
     }
   }
-});
+}
 
-// Listen for logout events
-document.addEventListener('logoutEvent', () => {
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('user_id');
-  localStorage.removeItem('user_email');
+// Send token on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', sendTokenIfAvailable);
+} else {
+  sendTokenIfAvailable();
+}
 
-  try {
-    chrome.runtime.sendMessage({
-      action: 'logout'
-    });
-  } catch (error) {
-    // Extension might not be listening
+// Also send when storage changes (user logs in)
+window.addEventListener('storage', (event) => {
+  if (event.key === 'auth_token' && event.newValue) {
+    console.log('[Themefisher] Auth token updated, notifying extension...');
+    sendTokenIfAvailable();
   }
 });

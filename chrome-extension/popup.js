@@ -1,6 +1,4 @@
 const API_URL = 'https://tf-office-service.vercel.app';
-const SUPABASE_URL = 'https://krxkcvxtlqaobchbyutl.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyeGtjdnh0bHFhb2JjaGJ5dXRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTcwNzU2MzgsImV4cCI6MjAzMjY1MTYzOH0.T-gzl1nCgI3GXSdJKq8p2gBqC6Q8N6TmcR7VddWW1Zk';
 
 let selectedItems = [];
 let userSession = null;
@@ -11,14 +9,14 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   try {
-    // Check authentication
+    // Check authentication every time popup opens
     const session = await getSession();
     userSession = session;
 
     if (!session) {
       showAuthSection();
-      // Check periodically if user has logged in
-      setInterval(checkLoginStatus, 2000);
+      // Check for login changes while popup is open
+      checkForAuthToken();
       return;
     }
 
@@ -33,18 +31,49 @@ async function init() {
   }
 }
 
-// Check if user has logged in (called periodically)
-async function checkLoginStatus() {
-  const session = await getSession();
-  if (session && !userSession) {
-    // User just logged in, reload the popup
-    window.location.reload();
-  }
+// Continuously check if user has logged in by checking app tabs
+async function checkForAuthToken() {
+  let checkCount = 0;
+  const maxChecks = 60; // Check for up to 2 minutes
+
+  const checker = setInterval(async () => {
+    checkCount++;
+
+    try {
+      // Query all tabs to find app tabs
+      const tabs = await chrome.tabs.query({ url: `${API_URL}/*` });
+
+      for (const tab of tabs) {
+        try {
+          // Try to get token from this tab
+          const response = await chrome.tabs.sendMessage(tab.id, { action: 'getToken' });
+
+          if (response && response.token) {
+            console.log('Found token in tab, saving...');
+            await saveSession(response.token, response.userId, response.email);
+            clearInterval(checker);
+
+            // Reload to show logged-in state
+            setTimeout(() => window.location.reload(), 500);
+            return;
+          }
+        } catch (error) {
+          // Tab doesn't respond, continue checking others
+        }
+      }
+    } catch (error) {
+      console.error('Check error:', error);
+    }
+
+    // Stop checking after max attempts
+    if (checkCount >= maxChecks) {
+      clearInterval(checker);
+    }
+  }, 2000);
 }
 
-// Get stored session from various sources
+// Get stored session
 async function getSession() {
-  // First check Chrome storage
   const stored = await chrome.storage.sync.get(['authToken', 'userId', 'email']);
 
   if (stored.authToken && stored.userId) {
@@ -53,35 +82,6 @@ async function getSession() {
       userId: stored.userId,
       email: stored.email
     };
-  }
-
-  // Try to get from localStorage via content script
-  try {
-    const result = await chrome.tabs.query({url: `${API_URL}/*`});
-    if (result.length > 0) {
-      // Found a tab with the app open, try to get token from it
-      const response = await chrome.tabs.sendMessage(result[0].id, {
-        action: 'getToken'
-      });
-
-      if (response && response.token) {
-        // Save token to storage
-        await chrome.storage.sync.set({
-          authToken: response.token,
-          userId: response.userId,
-          email: response.email
-        });
-
-        return {
-          token: response.token,
-          userId: response.userId,
-          email: response.email
-        };
-      }
-    }
-  } catch (error) {
-    // Tab doesn't have content script or no tab found
-    console.log('Could not get token from app tab');
   }
 
   return null;
