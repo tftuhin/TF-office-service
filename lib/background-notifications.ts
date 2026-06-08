@@ -3,7 +3,7 @@ import { App } from '@capacitor/app';
 import { createClient } from '@/lib/supabase/client';
 
 let checkInterval: NodeJS.Timeout | null = null;
-let lastCheckedTime = new Date();
+let notifiedOrderIds = new Set<number>();
 
 export async function initBackgroundNotifications() {
   console.log('Initializing background notifications');
@@ -20,13 +20,15 @@ export async function initBackgroundNotifications() {
     const permission = await LocalNotifications.requestPermissions();
     console.log('Background notification permission:', permission);
 
-    // Start checking for new orders every 30 seconds
+    // Get initial list of pending orders
+    await loadInitialOrders();
+
+    // Start checking for new orders every 10 seconds
     if (checkInterval) clearInterval(checkInterval);
+    checkInterval = setInterval(checkForNewOrders, 10000);
 
-    checkInterval = setInterval(checkForNewOrders, 30000);
-
-    // Also check immediately
-    checkForNewOrders();
+    // Also check immediately after a short delay
+    setTimeout(checkForNewOrders, 2000);
 
     // Listen for app resume to check notifications
     App.addListener('resume', () => {
@@ -34,8 +36,34 @@ export async function initBackgroundNotifications() {
       checkForNewOrders();
     });
 
+    // Keep the service alive
+    App.addListener('pause', () => {
+      console.log('App paused, background notifications will continue');
+    });
+
   } catch (error) {
     console.error('Background notification init error:', error);
+  }
+}
+
+async function loadInitialOrders() {
+  try {
+    const supabase = createClient();
+
+    // Get all current pending orders to avoid notifying about old ones
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('status', 'pending');
+
+    if (!error && orders) {
+      orders.forEach(order => {
+        notifiedOrderIds.add(order.id);
+      });
+      console.log('Loaded initial orders:', notifiedOrderIds.size);
+    }
+  } catch (error) {
+    console.error('Error loading initial orders:', error);
   }
 }
 
@@ -43,12 +71,11 @@ async function checkForNewOrders() {
   try {
     const supabase = createClient();
 
-    // Get new orders since last check
+    // Get all pending orders
     const { data: orders, error } = await supabase
       .from('orders')
       .select('id, user_id, status, created_at, items!inner(menu_item(name))')
       .eq('status', 'pending')
-      .gt('created_at', lastCheckedTime.toISOString())
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -56,31 +83,42 @@ async function checkForNewOrders() {
       return;
     }
 
-    lastCheckedTime = new Date();
+    if (!orders || orders.length === 0) {
+      console.log('No pending orders');
+      return;
+    }
 
-    if (orders && orders.length > 0) {
-      console.log('Found new orders:', orders.length);
+    // Find new orders that we haven't notified about
+    const newOrders = orders.filter(order => !notifiedOrderIds.has(order.id));
 
-      // Show notification for first new order
-      const order = orders[0];
-      const itemCount = (order.items as any[])?.length || 0;
+    if (newOrders.length > 0) {
+      console.log('Found new orders:', newOrders.length);
 
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            title: '🆕 New Order!',
-            body: `Order #${order.id} - ${itemCount} item${itemCount > 1 ? 's' : ''}`,
-            id: Math.floor(Date.now() / 1000),
-            schedule: { at: new Date(Date.now() + 100) },
-            smallIcon: 'ic_launcher',
-            largeBody: `New order from staff member with ${itemCount} item${itemCount > 1 ? 's' : ''}`,
-            summaryText: `${orders.length} new order${orders.length > 1 ? 's' : ''}`,
-            sound: 'beep',
-          },
-        ],
-      });
+      // Show notification for each new order
+      for (const order of newOrders) {
+        const itemCount = (order.items as any[])?.length || 0;
 
-      console.log('Notification scheduled for new order');
+        notifiedOrderIds.add(order.id);
+
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title: '🆕 New Order!',
+              body: `Order #${order.id} - ${itemCount} item${itemCount > 1 ? 's' : ''}`,
+              id: order.id,
+              schedule: { at: new Date(Date.now() + 100) },
+              smallIcon: 'ic_launcher',
+              largeBody: `New order with ${itemCount} item${itemCount > 1 ? 's' : ''}`,
+              summaryText: `New pending order`,
+              sound: 'beep',
+            },
+          ],
+        });
+
+        console.log('Notification scheduled for order:', order.id);
+      }
+    } else {
+      console.log('No new orders to notify about');
     }
   } catch (error) {
     console.error('Error checking for new orders:', error);
