@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { showCapacitorNotification, initializeCapacitorNotifications } from "@/lib/capacitor-notifications";
 
 type Toast = { id: number; title: string; body: string; tone: "new" | "reminder" };
 
@@ -69,7 +70,16 @@ export function NotificationProvider({
       // New orders get loud continuous alert
       beep();
 
-      // Show browser notification (works when app is open)
+      // Try Capacitor notifications first (works even when app is in background)
+      showCapacitorNotification(title, body, {
+        largeBody: body,
+        vibrate: true,
+        sound: tone === "new" ? "beep" : undefined,
+      }).catch(() => {
+        console.log("Capacitor not available, using browser notifications");
+      });
+
+      // Fallback to browser notification (works when app is open)
       if (typeof Notification !== "undefined") {
         if (Notification.permission === "granted") {
           try {
@@ -91,8 +101,6 @@ export function NotificationProvider({
           } catch (e) {
             console.error("Notification error:", e);
           }
-        } else if (Notification.permission === "denied") {
-          console.log("Notifications blocked by user");
         }
       }
 
@@ -111,6 +119,11 @@ export function NotificationProvider({
 
   useEffect(() => {
     if (!enabled) return;
+
+    // Initialize Capacitor notifications (for native mobile app)
+    initializeCapacitorNotifications().catch(() => {
+      console.log("Capacitor not available");
+    });
 
     // Request notification permissions on app load
     if (typeof Notification !== "undefined") {
