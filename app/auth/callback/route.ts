@@ -1,16 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 
-// Handles the redirect back from email-confirmation / magic links.
-export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/menu";
+export const revalidate = false;
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
-  }
-  return NextResponse.redirect(`${origin}/login?error=auth`);
+// This route is only used in web mode, not in the mobile app
+// Mobile apps use Supabase mobile SDKs for authentication
+export async function GET() {
+  return NextResponse.json({ message: "Mobile app - auth not available" });
 }
