@@ -36,8 +36,8 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
   const Sidebar = (
     <nav className="flex h-full flex-col gap-1 p-4">
       <div className="mb-4 flex items-center gap-2 px-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-canteen-accent text-white">☕</div>
-        <span className="font-display text-lg">The Canteen</span>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-700 text-white">🏢</div>
+        <span className="font-display text-lg">Themefisher</span>
       </div>
       {items.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
@@ -87,7 +87,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex items-center gap-3 border-b border-canteen-line bg-white px-4 py-3 md:hidden">
             <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-canteen-bg"><MenuIcon size={20} /></button>
-            <span className="font-display">The Canteen</span>
+            <span className="font-display">Themefisher</span>
           </header>
           <main className="flex-1 p-5 md:p-8">{children}</main>
         </div>
