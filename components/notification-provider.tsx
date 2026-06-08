@@ -26,7 +26,7 @@ export function NotificationProvider({
     setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== id)), 8000);
   }, []);
 
-  // --- Alert tone via Web Audio (no audio file needed) -----------------------
+  // --- Loud alert tone via Web Audio (persistent, repeating) ------------------
   const beep = useCallback(() => {
     try {
       const Ctx = window.AudioContext || (window as any).webkitAudioContext;
@@ -37,24 +37,27 @@ export function NotificationProvider({
       gain.connect(ctx.destination);
       osc.type = "sine";
 
-      // Double beep pattern for better alert
       const now = ctx.currentTime;
+      const duration = 3; // 3 second alert total
 
-      // First beep (high frequency)
-      osc.frequency.setValueAtTime(1000, now);
-      osc.frequency.setValueAtTime(1200, now + 0.1);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.5, now + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-
-      // Second beep (slightly different)
-      osc.frequency.setValueAtTime(900, now + 0.3);
-      gain.gain.setValueAtTime(0.3, now + 0.3);
-      gain.gain.exponentialRampToValueAtTime(0.5, now + 0.35);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+      // Repeating loud beep pattern (plays 3 times)
+      for (let i = 0; i < 3; i++) {
+        const offset = i * 1;
+        // High beep (loud)
+        osc.frequency.setValueAtTime(1200, now + offset);
+        gain.gain.setValueAtTime(0, now + offset);
+        gain.gain.linearRampToValueAtTime(0.8, now + offset + 0.05); // Ramp up to max volume
+        gain.gain.linearRampToValueAtTime(0.8, now + offset + 0.25); // Hold at loud volume
+        gain.gain.linearRampToValueAtTime(0, now + offset + 0.35); // Fade out
+      }
 
       osc.start();
-      osc.stop(now + 0.56);
+      osc.stop(now + duration);
+
+      // Vibration pattern (if device supports it)
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 200]); // Vibrate 5 times
+      }
     } catch {
       /* autoplay may be blocked until the first user interaction */
     }
@@ -63,16 +66,22 @@ export function NotificationProvider({
   const notify = useCallback(
     (title: string, body: string, tone: Toast["tone"]) => {
       pushToast({ title, body, tone });
-      // New orders get triple beep for extra attention
-      if (tone === "new") {
-        beep();
-        setTimeout(() => beep(), 200);
-        setTimeout(() => beep(), 400);
-      } else {
-        beep();
-      }
+      // New orders get loud continuous alert
+      beep();
+
+      // Browser notification - persist on screen
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        new Notification(title, { body, tag: tone === "reminder" ? "pending-reminder" : undefined });
+        const notif = new Notification(title, {
+          body,
+          tag: tone === "new" ? "new-order" : "pending-reminder",
+          requireInteraction: true, // Keep notification visible until user interacts
+          badge: "🏢",
+          icon: tone === "new" ? "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%231a2b45'/><text x='50' y='60' font-size='60' text-anchor='middle' fill='white'>📦</text></svg>" : undefined,
+        });
+        // Play sound again when notification appears
+        setTimeout(() => {
+          if (tone === "new") beep();
+        }, 500);
       }
     },
     [pushToast, beep]
