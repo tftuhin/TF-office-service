@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Themefisher Quick Order</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 380px;
+            font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            color: #111827;
+        }
+
+        .container {
+            padding: 16px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #1a2b45;
+        }
+
+        .header-icon {
+            font-size: 24px;
+        }
+
+        .header-title {
+            font-weight: 600;
+            color: #1a2b45;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: center;
+            display: none;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+
+        .status.loading {
+            background: #e0e7ff;
+            color: #3730a3;
+            display: block;
+        }
+
+        .menu-section {
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .favorites {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .favorite-btn {
+            padding: 12px 8px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .favorite-btn:hover {
+            border-color: #1a2b45;
+            background: #f3f4f6;
+        }
+
+        .favorite-btn.loading {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .menu-items {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .menu-item:hover {
+            border-color: #1a2b45;
+            background: #f9fafb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .menu-item-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .menu-item-price {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .quick-order {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .quick-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .quick-btn-primary {
+            background: #1a2b45;
+            color: white;
+        }
+
+        .quick-btn-primary:hover {
+            background: #152c48;
+        }
+
+        .quick-btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .quick-btn-secondary {
+            background: white;
+            color: #1a2b45;
+            border: 2px solid #1a2b45;
+        }
+
+        .quick-btn-secondary:hover {
+            background: #f3f4f6;
+        }
+
+        .auth-section {
+            text-align: center;
+            padding: 24px 16px;
+        }
+
+        .auth-section p {
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: #1a2b45;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .auth-btn:hover {
+            background: #152c48;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a2b45;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 24px 16px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-icon">☕</div>
+            <div class="header-title">Quick Order</div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="status" class="status"></div>
+
+        <!-- Not Authenticated -->
+        <div id="authSection" class="auth-section" style="display: none;">
+            <p>Login required</p>
+            <button class="auth-btn" id="loginBtn">Open App to Login</button>
+        </div>
+
+        <!-- Authenticated Content -->
+        <div id="contentSection" style="display: none;">
+            <!-- Quick Favorites -->
+            <div class="menu-section">
+                <div class="section-title">⭐ Quick Favorites</div>
+                <div id="favoritesContainer" class="favorites"></div>
+            </div>
+
+            <!-- Quick Order Buttons -->
+            <div class="quick-order">
+                <button class="quick-btn quick-btn-primary" id="placeOrderBtn">✅ Place Order</button>
+                <button class="quick-btn quick-btn-secondary" id="openAppBtn">🔍 Browse Menu</button>
+            </div>
+
+            <!-- All Menu Items -->
+            <div class="menu-section">
+                <div class="section-title">📋 All Items</div>
+                <div id="menuContainer" class="menu-items scrollbar"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
