@@ -7,12 +7,11 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { money } from "@/lib/utils";
 import type { Item } from "@/types/database";
 
 export function AdminMenu({ initialItems }: { initialItems: Item[] }) {
   const [items, setItems] = useState(initialItems);
-  const [form, setForm] = useState({ name: "", description: "", price: "" });
+  const [form, setForm] = useState({ name: "", description: "" });
   const [busy, setBusy] = useState(false);
   const supabase = createClient();
 
@@ -21,13 +20,13 @@ export function AdminMenu({ initialItems }: { initialItems: Item[] }) {
     setBusy(true);
     const { data, error } = await supabase
       .from("items")
-      .insert({ name: form.name.trim(), description: form.description.trim() || null, price: Number(form.price) || 0 })
+      .insert({ name: form.name.trim(), description: form.description.trim() || null })
       .select("*")
       .single();
     setBusy(false);
     if (error) return alert(error.message);
     setItems((p) => [data as Item, ...p]);
-    setForm({ name: "", description: "", price: "" });
+    setForm({ name: "", description: "" });
   }
 
   async function toggle(item: Item) {
@@ -55,10 +54,9 @@ export function AdminMenu({ initialItems }: { initialItems: Item[] }) {
       <Card>
         <CardBody className="space-y-4">
           <h2 className="text-base">Add menu item</h2>
-          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Name"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
             <Field label="Description"><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
-            <Field label="Price"><Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></Field>
           </div>
           <Button onClick={addItem} disabled={busy}><Plus size={18} /> Add item</Button>
         </CardBody>
@@ -74,7 +72,6 @@ export function AdminMenu({ initialItems }: { initialItems: Item[] }) {
                   {!item.is_available && <Badge tone="muted">Hidden</Badge>}
                 </div>
                 {item.description && <p className="truncate text-sm text-canteen-muted">{item.description}</p>}
-                <p className="mt-1 text-sm font-medium text-canteen-accent">{money(item.price)}</p>
               </div>
               <Button variant="outline" size="sm" onClick={() => toggle(item)}>
                 {item.is_available ? <EyeOff size={16} /> : <Eye size={16} />}

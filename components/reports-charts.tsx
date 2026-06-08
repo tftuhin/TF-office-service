@@ -5,7 +5,6 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from "recharts";
 import { Card, CardBody } from "@/components/ui/card";
-import { money } from "@/lib/utils";
 
 const ACCENT = "#b4451f";
 const OK = "#3f6f4f";
@@ -44,8 +43,8 @@ export function ReportsCharts({
   avgByDay,
   byHour,
 }: {
-  kpis: { totalOrders: number; totalRevenue: number; avgCompletion: number };
-  monthly: { month: string; orders: number; revenue: number }[];
+  kpis: { totalOrders: number; avgCompletion: number };
+  monthly: { month: string; orders: number }[];
   topItems: { name: string; qty: number }[];
   avgByDay: { day: string; avg: number }[];
   byHour: { hour: string; orders: number }[];
@@ -54,23 +53,21 @@ export function ReportsCharts({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Kpi label="Total orders" value={String(kpis.totalOrders)} />
-        <Kpi label="Total revenue" value={money(kpis.totalRevenue)} />
         <Kpi label="Avg. completion" value={`${kpis.avgCompletion} min`} />
       </div>
 
       <section>
         <h2 className="mb-3 text-lg">Month-to-month</h2>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Orders & revenue by month">
+          <Panel title="Orders by month">
             <BarChart data={monthly}>
               <CartesianGrid stroke={GRID} vertical={false} />
               <XAxis dataKey="month" tick={tick} tickLine={false} axisLine={{ stroke: GRID }} />
               <YAxis tick={tick} tickLine={false} axisLine={false} />
-              <Tooltip formatter={(v: number, n) => (n === "revenue" ? money(v) : v)} />
+              <Tooltip />
               <Bar dataKey="orders" fill={ACCENT} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="revenue" fill={OK} radius={[4, 4, 0, 0]} />
             </BarChart>
           </Panel>
           <Panel title="Top-selling items">

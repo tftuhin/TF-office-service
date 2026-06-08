@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { money } from "@/lib/utils";
 import type { OrderWithDetails } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -25,9 +24,7 @@ export default async function MyOrdersPage() {
         <Card><CardBody className="text-center text-sm text-canteen-muted">You haven&apos;t placed any orders yet.</CardBody></Card>
       )}
       <div className="space-y-3">
-        {orders.map((o) => {
-          const total = o.order_items.reduce((s, li) => s + li.unit_price * li.quantity, 0);
-          return (
+        {orders.map((o) => (
             <Card key={o.id}>
               <CardBody>
                 <div className="flex items-start justify-between">
@@ -37,13 +34,11 @@ export default async function MyOrdersPage() {
                     </p>
                     <ul className="mt-2 space-y-0.5 text-sm">
                       {o.order_items.map((li) => (
-                        <li key={li.id} className="flex justify-between gap-6">
-                          <span>{li.quantity}× {li.items?.name ?? "Item"}</span>
-                          <span className="text-canteen-muted">{money(li.unit_price * li.quantity)}</span>
+                        <li key={li.id}>
+                          {li.quantity}× {li.items?.name ?? "Item"}
                         </li>
                       ))}
                     </ul>
-                    <p className="mt-2 text-sm font-medium">Total {money(total)}</p>
                   </div>
                   <div className="text-right">
                     {o.status === "completed" ? (
@@ -58,8 +53,7 @@ export default async function MyOrdersPage() {
                 </div>
               </CardBody>
             </Card>
-          );
-        })}
+        ))}
       </div>
     </div>
   );

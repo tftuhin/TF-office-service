@@ -6,7 +6,6 @@ import { Minus, Plus, ShoppingCart, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { money } from "@/lib/utils";
 import type { Item } from "@/types/database";
 
 export function MenuOrder({ items, userId }: { items: Item[]; userId: string }) {
@@ -20,7 +19,6 @@ export function MenuOrder({ items, userId }: { items: Item[]; userId: string }) 
     () => items.filter((i) => (qty[i.id] ?? 0) > 0).map((i) => ({ item: i, q: qty[i.id] })),
     [items, qty]
   );
-  const total = lines.reduce((s, l) => s + l.item.price * l.q, 0);
   const count = lines.reduce((s, l) => s + l.q, 0);
 
   const bump = (id: string, d: number) =>
@@ -90,7 +88,6 @@ export function MenuOrder({ items, userId }: { items: Item[]; userId: string }) 
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-canteen-ink">{item.name}</p>
                 {item.description && <p className="truncate text-sm text-canteen-muted">{item.description}</p>}
-                <p className="mt-1 text-sm font-medium text-canteen-accent">{money(item.price)}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => bump(item.id, -1)} disabled={q === 0} aria-label="Decrease">
@@ -110,10 +107,7 @@ export function MenuOrder({ items, userId }: { items: Item[]; userId: string }) 
       {count > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-canteen-line bg-white/95 p-4 backdrop-blur md:left-64">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-            <div className="text-sm">
-              <p className="text-canteen-muted">{count} item{count === 1 ? "" : "s"}</p>
-              <p className="text-lg font-medium">{money(total)}</p>
-            </div>
+            <p className="text-sm text-canteen-muted">{count} item{count === 1 ? "" : "s"} selected</p>
             <Button onClick={placeOrder} disabled={placing} size="lg">
               <ShoppingCart size={18} />
               {placing ? "Placing…" : "Place order"}

@@ -20,8 +20,8 @@ export default async function ReportsPage() {
 
   const orders = (data ?? []) as OrderWithDetails[];
 
-  // --- Month-to-month: orders + revenue ------------------------------------
-  const byMonth = new Map<string, { month: string; orders: number; revenue: number }>();
+  // --- Month-to-month: orders -----------------------------------------------
+  const byMonth = new Map<string, { month: string; orders: number }>();
   // --- Top items -----------------------------------------------------------
   const itemTotals = new Map<string, number>();
   // --- Efficiency: avg duration by day + peak hours ------------------------
@@ -30,10 +30,8 @@ export default async function ReportsPage() {
 
   for (const o of orders) {
     const mk = monthKey(o.placed_at);
-    const orderRevenue = o.order_items.reduce((s, li) => s + li.unit_price * li.quantity, 0);
-    const m = byMonth.get(mk) ?? { month: mk, orders: 0, revenue: 0 };
+    const m = byMonth.get(mk) ?? { month: mk, orders: 0 };
     m.orders += 1;
-    m.revenue += orderRevenue;
     byMonth.set(mk, m);
 
     for (const li of o.order_items) {
@@ -60,7 +58,6 @@ export default async function ReportsPage() {
   const avgByDay = [...byDay.entries()].map(([day, v]) => ({ day, avg: Math.round(v.sum / v.n) }));
 
   const totalOrders = orders.length;
-  const totalRevenue = monthly.reduce((s, m) => s + m.revenue, 0);
   const completed = orders.filter((o) => o.duration_minutes != null);
   const avgCompletion = completed.length
     ? Math.round(completed.reduce((s, o) => s + (o.duration_minutes ?? 0), 0) / completed.length)
@@ -70,10 +67,10 @@ export default async function ReportsPage() {
     <div>
       <header className="mb-6">
         <h1 className="text-2xl">Reports</h1>
-        <p className="mt-1 text-sm text-canteen-muted">Order volume, revenue, and cafeteria efficiency.</p>
+        <p className="mt-1 text-sm text-canteen-muted">Order volume and service efficiency.</p>
       </header>
       <ReportsCharts
-        kpis={{ totalOrders, totalRevenue, avgCompletion }}
+        kpis={{ totalOrders, avgCompletion }}
         monthly={monthly}
         topItems={topItems}
         avgByDay={avgByDay}
