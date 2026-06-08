@@ -6,7 +6,7 @@ import type { OrderWithDetails } from "@/types/database";
 export const dynamic = "force-dynamic";
 
 function monthKey(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { month: "short", year: "numeric" });
+  return new Date(iso).toLocaleString("en-BD", { month: "short", year: "numeric", timeZone: "Asia/Dhaka" });
 }
 
 export default async function ReportsPage() {
@@ -42,7 +42,7 @@ export default async function ReportsPage() {
     byHour[new Date(o.placed_at).getHours()].orders += 1;
 
     if (o.status === "completed" && o.duration_minutes != null) {
-      const dk = new Date(o.placed_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const dk = new Date(o.placed_at).toLocaleDateString("en-BD", { month: "short", day: "numeric", timeZone: "Asia/Dhaka" });
       const d = byDay.get(dk) ?? { sum: 0, n: 0 };
       d.sum += o.duration_minutes;
       d.n += 1;

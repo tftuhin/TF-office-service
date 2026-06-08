@@ -30,7 +30,7 @@ export default async function MyOrdersPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-canteen-muted">
-                      {new Date(o.placed_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                      {new Date(o.placed_at).toLocaleString("en-BD", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" })}
                     </p>
                     <ul className="mt-2 space-y-0.5 text-sm">
                       {o.order_items.map((li) => (
