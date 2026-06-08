@@ -207,11 +207,20 @@ function updateOrderSummary() {
 
 // Quick order with favorite
 async function quickOrder(name, quantity) {
+  // Find the item from menu to get its ID and price
+  const menuItem = menuItems.find(item => item.name === name);
+
+  if (!menuItem) {
+    showStatus('Item not found in menu', 'error');
+    return;
+  }
+
   selectedItems = [
     {
-      name,
-      quantity,
-      price: 100 // Default, will be updated from menu
+      id: menuItem.id,
+      name: menuItem.name,
+      quantity: parseInt(quantity),
+      price: menuItem.price
     }
   ];
 
@@ -269,7 +278,8 @@ async function placeOrder() {
     }, 2000);
   } catch (error) {
     console.error('Order error:', error);
-    showStatus('Failed to place order: ' + (error as Error).message, 'error');
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    showStatus('Failed to place order: ' + errorMsg, 'error');
   }
 }
 
