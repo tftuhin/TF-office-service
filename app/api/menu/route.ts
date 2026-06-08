@@ -1,16 +1,5 @@
 import { NextResponse } from 'next/server';
-
-// Mock menu items for now - replace with database query when needed
-const MOCK_MENU_ITEMS = [
-  { id: 1, name: 'Biryani', price: 250, category: 'Rice', description: 'Fragrant rice dish' },
-  { id: 2, name: 'Chicken Curry', price: 180, category: 'Curry', description: 'Spiced chicken' },
-  { id: 3, name: 'Dal Fry', price: 120, category: 'Lentils', description: 'Lentil curry' },
-  { id: 4, name: 'Naan', price: 60, category: 'Bread', description: 'Tandoori bread' },
-  { id: 5, name: 'Raita', price: 50, category: 'Sides', description: 'Yogurt side' },
-  { id: 6, name: 'Samosa', price: 40, category: 'Appetizer', description: 'Fried pastry' },
-  { id: 7, name: 'Chai', price: 30, category: 'Beverage', description: 'Tea' },
-  { id: 8, name: 'Lassi', price: 50, category: 'Beverage', description: 'Yogurt drink' },
-];
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   try {
@@ -22,43 +11,47 @@ export async function GET(request: Request) {
 
     const token = authHeader.substring(7);
 
-    // Basic token validation - check if token exists and is not empty
+    // Basic token validation
     if (!token || token.length < 10) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // For now, return mock menu items
-    // TODO: Replace with actual database query when Supabase is fully configured
-    return NextResponse.json({
-      items: MOCK_MENU_ITEMS,
-      total: MOCK_MENU_ITEMS.length
-    });
+    try {
+      const supabase = await createClient();
 
-    // Uncomment below when ready to use Supabase:
-    /*
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      // Query items from Supabase (table is 'items', not 'menu_items')
+      const { data: items, error } = await supabase
+        .from('items')
+        .select('id, name, description, price, is_available')
+        .eq('is_available', true)
+        .order('name');
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      if (error) {
+        console.error('Database query error:', error);
+        throw error;
+      }
+
+      // Transform items for the extension
+      const menuItems = (items || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        price: parseFloat(item.price)
+      }));
+
+      return NextResponse.json({
+        items: menuItems,
+        total: menuItems.length
+      });
+    } catch (dbError) {
+      console.error('Supabase error:', dbError);
+      // Return empty menu on database error instead of 500
+      return NextResponse.json({
+        items: [],
+        total: 0,
+        message: 'Menu temporarily unavailable'
+      });
     }
-
-    const { data: menuItems, error } = await supabase
-      .from('menu_items')
-      .select('id, name, description, price, category')
-      .eq('active', true)
-      .order('category, name');
-
-    if (error) {
-      console.error('Menu query error:', error);
-      return NextResponse.json({ error: 'Failed to load menu' }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      items: menuItems || [],
-      total: menuItems?.length || 0
-    });
-    */
   } catch (error) {
     console.error('Menu API error:', error);
     return NextResponse.json({
