@@ -17,6 +17,8 @@ async function init() {
 
     if (!session) {
       showAuthSection();
+      // Check periodically if user has logged in
+      setInterval(checkLoginStatus, 2000);
       return;
     }
 
@@ -31,38 +33,114 @@ async function init() {
   }
 }
 
-// Get stored session or login
+// Check if user has logged in (called periodically)
+async function checkLoginStatus() {
+  const session = await getSession();
+  if (session && !userSession) {
+    // User just logged in, reload the popup
+    window.location.reload();
+  }
+}
+
+// Get stored session from various sources
 async function getSession() {
-  // Check if we have stored token
-  const stored = await chrome.storage.sync.get(['authToken', 'userId']);
+  // First check Chrome storage
+  const stored = await chrome.storage.sync.get(['authToken', 'userId', 'email']);
 
   if (stored.authToken && stored.userId) {
     return {
       token: stored.authToken,
-      userId: stored.userId
+      userId: stored.userId,
+      email: stored.email
     };
+  }
+
+  // Try to get from localStorage via content script
+  try {
+    const result = await chrome.tabs.query({url: `${API_URL}/*`});
+    if (result.length > 0) {
+      // Found a tab with the app open, try to get token from it
+      const response = await chrome.tabs.sendMessage(result[0].id, {
+        action: 'getToken'
+      });
+
+      if (response && response.token) {
+        // Save token to storage
+        await chrome.storage.sync.set({
+          authToken: response.token,
+          userId: response.userId,
+          email: response.email
+        });
+
+        return {
+          token: response.token,
+          userId: response.userId,
+          email: response.email
+        };
+      }
+    }
+  } catch (error) {
+    // Tab doesn't have content script or no tab found
+    console.log('Could not get token from app tab');
   }
 
   return null;
 }
 
+// Save session
+async function saveSession(token, userId, email) {
+  await chrome.storage.sync.set({
+    authToken: token,
+    userId: userId,
+    email: email
+  });
+
+  userSession = {
+    token,
+    userId,
+    email
+  };
+}
+
 // Load menu items
 async function loadMenu() {
   try {
+    if (!userSession || !userSession.token) {
+      showStatus('Not authenticated', 'error');
+      showAuthSection();
+      return;
+    }
+
     const response = await fetch(`${API_URL}/api/menu`, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${userSession.token}`,
         'Content-Type': 'application/json'
       }
     });
 
-    if (!response.ok) throw new Error('Failed to load menu');
+    if (response.status === 401) {
+      // Token is invalid, clear and show auth
+      await chrome.storage.sync.remove(['authToken', 'userId', 'email']);
+      showStatus('Session expired. Please login again.', 'error');
+      showAuthSection();
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to load menu (${response.status})`);
+    }
 
     const data = await response.json();
     menuItems = data.items || [];
 
     // Render menu items
     const menuContainer = document.getElementById('menuContainer');
+    if (menuItems.length === 0) {
+      menuContainer.innerHTML = '<p style="grid-column: 1/-1; color: #9ca3af;">No menu items available</p>';
+      return;
+    }
+
     menuContainer.innerHTML = menuItems.map(item => `
       <div class="menu-item" data-id="${item.id}" onclick="toggleItem(${item.id}, '${item.name}', ${item.price})">
         <div class="menu-item-name">${item.name}</div>
@@ -71,7 +149,7 @@ async function loadMenu() {
     `).join('');
   } catch (error) {
     console.error('Menu load error:', error);
-    showStatus('Failed to load menu', 'error');
+    showStatus('Failed to load menu: ' + error.message, 'error');
   }
 }
 

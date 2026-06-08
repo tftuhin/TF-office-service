@@ -19,9 +19,41 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return setError(error.message);
+
+    // Save auth info to localStorage for Chrome extension
+    if (data.user) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          localStorage.setItem('auth_token', session.access_token);
+          localStorage.setItem('user_id', data.user.id);
+          localStorage.setItem('user_email', data.user.email || '');
+
+          // Notify extension if available
+          try {
+            const win = window as any;
+            if (win.chrome?.runtime?.sendMessage) {
+              win.chrome.runtime.sendMessage(
+                {
+                  action: 'tokenUpdated',
+                  token: session.access_token,
+                  userId: data.user.id,
+                  email: data.user.email
+                }
+              );
+            }
+          } catch (e) {
+            // Extension not available, that's okay
+          }
+        }
+      } catch (e) {
+        console.error('Error saving token:', e);
+      }
+    }
+
     router.push("/menu");
     router.refresh();
   }
