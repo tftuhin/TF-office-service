@@ -26,7 +26,7 @@ export function NotificationProvider({
     setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== id)), 8000);
   }, []);
 
-  // --- Short alert tone via Web Audio (no audio file needed) -----------------
+  // --- Alert tone via Web Audio (no audio file needed) -----------------------
   const beep = useCallback(() => {
     try {
       const Ctx = window.AudioContext || (window as any).webkitAudioContext;
@@ -36,13 +36,25 @@ export function NotificationProvider({
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.type = "sine";
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.setValueAtTime(1175, ctx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+
+      // Double beep pattern for better alert
+      const now = ctx.currentTime;
+
+      // First beep (high frequency)
+      osc.frequency.setValueAtTime(1000, now);
+      osc.frequency.setValueAtTime(1200, now + 0.1);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.5, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+      // Second beep (slightly different)
+      osc.frequency.setValueAtTime(900, now + 0.3);
+      gain.gain.setValueAtTime(0.3, now + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.5, now + 0.35);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+
       osc.start();
-      osc.stop(ctx.currentTime + 0.36);
+      osc.stop(now + 0.56);
     } catch {
       /* autoplay may be blocked until the first user interaction */
     }
@@ -51,7 +63,14 @@ export function NotificationProvider({
   const notify = useCallback(
     (title: string, body: string, tone: Toast["tone"]) => {
       pushToast({ title, body, tone });
-      beep();
+      // New orders get triple beep for extra attention
+      if (tone === "new") {
+        beep();
+        setTimeout(() => beep(), 200);
+        setTimeout(() => beep(), 400);
+      } else {
+        beep();
+      }
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         new Notification(title, { body, tag: tone === "reminder" ? "pending-reminder" : undefined });
       }
