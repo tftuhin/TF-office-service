@@ -75,33 +75,35 @@ export function MenuOrder({ items, userId }: { items: Item[]; userId: string }) 
   }
 
   return (
-    <div className="space-y-3 pb-28">
+    <div className="pb-28">
       {items.length === 0 && (
         <Card><CardBody className="text-center text-sm text-canteen-muted">No items available right now.</CardBody></Card>
       )}
 
-      {items.map((item) => {
-        const q = qty[item.id] ?? 0;
-        return (
-          <Card key={item.id}>
-            <CardBody className="flex items-center gap-4">
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-canteen-ink">{item.name}</p>
-                {item.description && <p className="truncate text-sm text-canteen-muted">{item.description}</p>}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => bump(item.id, -1)} disabled={q === 0} aria-label="Decrease">
-                  <Minus size={16} />
-                </Button>
-                <span className="w-6 text-center text-sm font-medium">{q}</span>
-                <Button variant="outline" size="sm" onClick={() => bump(item.id, 1)} aria-label="Increase">
-                  <Plus size={16} />
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        );
-      })}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {items.map((item) => {
+          const q = qty[item.id] ?? 0;
+          return (
+            <Card key={item.id}>
+              <CardBody className="flex flex-col gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-canteen-ink">{item.name}</p>
+                  {item.description && <p className="text-xs text-canteen-muted line-clamp-2">{item.description}</p>}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <Button variant="outline" size="sm" onClick={() => bump(item.id, -1)} disabled={q === 0} aria-label="Decrease">
+                    <Minus size={14} />
+                  </Button>
+                  <span className="w-5 text-center text-sm font-medium">{q}</span>
+                  <Button variant="outline" size="sm" onClick={() => bump(item.id, 1)} aria-label="Increase">
+                    <Plus size={14} />
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          );
+        })}
+      </div>
 
       {/* Sticky cart bar */}
       {count > 0 && (
