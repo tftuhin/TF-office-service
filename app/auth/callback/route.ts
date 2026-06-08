@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 
-export const revalidate = false;
+// OAuth callback for Supabase authentication
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get("code");
+  const state = searchParams.get("state");
 
-// This route is only used in web mode, not in the mobile app
-// Mobile apps use Supabase mobile SDKs for authentication
-export async function GET() {
-  return NextResponse.json({ message: "Mobile app - auth not available" });
+  if (!code) {
+    return NextResponse.redirect("/login?error=no_code");
+  }
+
+  // The actual auth exchange is handled by the client-side auth.ts
+  // This route exists for OAuth provider redirects
+  return NextResponse.redirect("/");
 }
