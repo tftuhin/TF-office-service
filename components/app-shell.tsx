@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Profile, Role } from "@/types/database";
 import { NotificationProvider } from "@/components/notification-provider";
+import { NotificationPrompt } from "@/components/notification-prompt";
 
 type NavItem = { href: string; label: string; icon: React.ElementType; roles: Role[] };
 
@@ -92,6 +93,8 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
           <main className="flex-1 p-5 md:p-8">{children}</main>
         </div>
       </div>
+      {/* Show notification permission prompt for staff/admin */}
+      {(profile.role === "staff" || profile.role === "admin") && <NotificationPrompt />}
     </NotificationProvider>
   );
 }

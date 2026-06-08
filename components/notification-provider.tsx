@@ -69,19 +69,28 @@ export function NotificationProvider({
       // New orders get loud continuous alert
       beep();
 
-      // Browser notification - persist on screen
+      // Browser notification - persist on screen and in notification bar
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        const notif = new Notification(title, {
-          body,
-          tag: tone === "new" ? "new-order" : "pending-reminder",
-          requireInteraction: true, // Keep notification visible until user interacts
-          badge: "🏢",
-          icon: tone === "new" ? "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%231a2b45'/><text x='50' y='60' font-size='60' text-anchor='middle' fill='white'>📦</text></svg>" : undefined,
-        });
-        // Play sound again when notification appears
-        setTimeout(() => {
-          if (tone === "new") beep();
-        }, 500);
+        try {
+          const notif = new Notification(title, {
+            body,
+            tag: tone === "new" ? "new-order" : "pending-reminder",
+            requireInteraction: true, // Keep notification visible until user interacts
+            badge: "🏢",
+            icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a2b45' width='192' height='192'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='white'>📦</text></svg>",
+            vibrate: [200, 100, 200, 100, 200], // Vibrate pattern for phones
+            actions: tone === "new" ? [
+              { action: 'open', title: 'Open' },
+              { action: 'dismiss', title: 'Dismiss' }
+            ] : undefined,
+          });
+          // Play sound again when notification appears
+          setTimeout(() => {
+            if (tone === "new") beep();
+          }, 500);
+        } catch (e) {
+          console.error("Notification API error:", e);
+        }
       }
     },
     [pushToast, beep]
@@ -90,9 +99,36 @@ export function NotificationProvider({
   useEffect(() => {
     if (!enabled) return;
 
-    // Ask for permission once.
-    if (typeof Notification !== "undefined" && Notification.permission === "default") {
-      Notification.requestPermission();
+    // Request notification permissions on app load
+    if (typeof Notification !== "undefined") {
+      if (Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {
+          /* permission denied */
+        });
+      }
+    }
+
+    // Request service worker notifications permission
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (!registration.pushManager) return;
+        registration.pushManager.getSubscription().then((subscription) => {
+          if (!subscription) {
+            // Subscribe to push notifications
+            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+            if (vapidPublicKey) {
+              registration.pushManager
+                .subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: vapidPublicKey,
+                })
+                .catch(() => {
+                  /* subscription failed */
+                });
+            }
+          }
+        });
+      });
     }
 
     const supabase = createClient();
