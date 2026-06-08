@@ -15,9 +15,12 @@ export function NotificationPrompt() {
   useEffect(() => {
     const initNotifications = async () => {
       // Check if running in Capacitor (native mobile app)
-      const inCapacitor = typeof (window as any).capacitor !== "undefined";
+      const inCapacitor = typeof (window as any).capacitor !== "undefined" || typeof (window as any).Capacitor !== "undefined";
       setIsCapacitor(inCapacitor);
-      console.log("Is Capacitor:", inCapacitor);
+      console.log("Is Capacitor:", inCapacitor, {
+        capacitor: typeof (window as any).capacitor,
+        Capacitor: typeof (window as any).Capacitor,
+      });
 
       if (inCapacitor) {
         try {

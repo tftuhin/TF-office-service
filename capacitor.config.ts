@@ -11,9 +11,11 @@ const config: CapacitorConfig = {
   },
   plugins: {
     LocalNotifications: {
-      smallIcon: 'ic_stat_icon_config_sample',
+      smallIcon: 'ic_launcher',
       iconColor: '#1a2b45',
-      sound: 'beep.wav',
+      sound: 'beep',
+      importance: 5, // Max importance
+      vibrate: true,
     }
   }
 };
