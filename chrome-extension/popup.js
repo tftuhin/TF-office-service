@@ -142,11 +142,21 @@ async function loadMenu() {
     }
 
     menuContainer.innerHTML = menuItems.map(item => `
-      <div class="menu-item" data-id="${item.id}" onclick="toggleItem(${item.id}, '${item.name}', ${item.price})">
+      <div class="menu-item" data-id="${item.id}" data-name="${item.name}" data-price="${item.price}">
         <div class="menu-item-name">${item.name}</div>
         <div class="menu-item-price">Tk ${item.price}</div>
       </div>
     `).join('');
+
+    // Add click handlers to menu items
+    document.querySelectorAll('.menu-item').forEach(element => {
+      element.addEventListener('click', () => {
+        const id = element.getAttribute('data-id');
+        const name = element.getAttribute('data-name');
+        const price = parseFloat(element.getAttribute('data-price'));
+        toggleItem(id, name, price);
+      });
+    });
   } catch (error) {
     console.error('Menu load error:', error);
     showStatus('Failed to load menu: ' + error.message, 'error');
@@ -175,19 +185,26 @@ async function loadFavorites() {
 
 // Toggle menu item selection
 function toggleItem(id, name, price) {
+  console.log('toggleItem called:', { id, name, price });
+
   const existing = selectedItems.find(item => item.id === id);
 
   if (existing) {
     existing.quantity++;
+    console.log('Incremented quantity:', existing.quantity);
   } else {
     selectedItems.push({ id, name, price, quantity: 1 });
+    console.log('Added new item to cart');
   }
+
+  console.log('Selected items:', selectedItems);
 
   // Update UI
   const element = document.querySelector(`[data-id="${id}"]`);
   if (element) {
     element.style.background = '#dbeafe';
     element.style.borderColor = '#1a2b45';
+    element.style.boxShadow = '0 0 0 2px #1a2b45';
   }
 
   updateOrderSummary();
